@@ -5,13 +5,18 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
-class MoneyTransferViewModel : ViewModel() {
+class MoneyTransferViewModel(
+    private val applicationScope: CoroutineScope
+): ViewModel() {
 
     var state by mutableStateOf(MoneyTransferState())
         private set
@@ -34,7 +39,7 @@ class MoneyTransferViewModel : ViewModel() {
 
     private fun transferFunds() {
         job = viewModelScope.launch {
-            withContext(Dispatchers.Default) {
+            withContext(Dispatchers.IO) {
                 try {
                     state = state.copy(
                         isTransferring = true,
@@ -69,16 +74,24 @@ class MoneyTransferViewModel : ViewModel() {
                     }
 
                     debitAccount(state.savingsBalance, amountToTransfer)
-                    creditAccount(state.checkingBalance, amountToTransfer)
+                    applicationScope.launch {
+                        creditAccount(state.checkingBalance, amountToTransfer)
+                    }.join()
 
                     state = state.copy(
                         resultMessage = "Transfer complete!",
                     )
 
                 } catch (e: Exception) {
+                    ensureActive()
+
                     println("Error processing transfer: ${e.message}")
                 } finally {
-                    cleanupResources()
+
+                    withContext(NonCancellable) {
+                        cleanupResources()
+                    }
+
                     state = state.copy(
                         processingState = null,
                         isTransferring = false,
