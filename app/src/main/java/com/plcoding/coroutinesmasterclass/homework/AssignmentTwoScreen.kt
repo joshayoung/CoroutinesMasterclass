@@ -30,7 +30,9 @@ import coil.compose.rememberAsyncImagePainter
 import coil.request.ImageRequest
 import com.plcoding.coroutinesmasterclass.util.PhotoProcessor
 import com.plcoding.coroutinesmasterclass.util.RotatingBoxScreen
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 @Composable
 fun AssignmentTwoScreen() {
@@ -56,6 +58,7 @@ fun AssignmentTwoScreen() {
             isLoading = true
             val dominantColor = PhotoProcessor.findDominantColor(bitmap)
             isLoading = false
+
             backgroundColor = Color(dominantColor)
         }
     }
